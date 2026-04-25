@@ -1,0 +1,11 @@
+node_modules/
+npm-debug.log
+venv/
+__pycache__/
+*.pyc
+.env
+uploads/
+test_images/
+.git/
+.vscode/
+RUN apt-get update && apt-get install -y poppler-utils

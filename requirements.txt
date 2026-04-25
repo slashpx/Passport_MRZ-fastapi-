@@ -1,0 +1,20 @@
+
+# FastAPI Server
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+
+# MRZ Processing Core
+numpy
+onnxruntime
+opencv-python-headless
+pdf2image
+Pillow
+python-Levenshtein
+scipy
+pytesseract
+
+# External AI Services
+openai
+python-dotenv

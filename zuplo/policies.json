@@ -1,0 +1,63 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "ApiKeyInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": false,
+          "cacheTtlSeconds": 60
+        }
+      },
+      "name": "api-key-inbound",
+      "policyType": "api-key-inbound"
+    },
+    {
+      "handler": {
+        "export": "RateLimitInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "rateLimitBy": "user",
+          "requestsAllowed": 10000,
+          "timeWindowMinutes": 1440
+        }
+      },
+      "name": "rate-limit-inbound",
+      "policyType": "rate-limit-inbound"
+    },
+    {
+      "handler": {
+        "export": "SetHeadersInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "headers": [
+            {
+              "name": "x-api-key",
+              "value": "$env(AWS_API_KEY)",
+              "overwrite": true
+            }
+          ]
+        }
+      },
+      "name": "add-aws-api-key-inbound",
+      "policyType": "set-headers-inbound"
+    },
+    {
+      "handler": {
+        "export": "SetHeadersInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "headers": [
+            {
+              "name": "x-backend-secret",
+              "value": "$env(BACKEND_SECRET)",
+              "overwrite": true
+            }
+          ]
+        }
+      },
+      "name": "add-backend-secret-inbound",
+      "policyType": "set-headers-inbound"
+    }
+  ]
+}

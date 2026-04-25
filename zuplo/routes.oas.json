@@ -1,0 +1,160 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "elMRZ Passport OCR API",
+    "version": "1.0.0",
+    "description": "Passport MRZ scanning and OCR API — powered by elMRZ",
+    "x-internal-url": "https://myqd2iza11.execute-api.eu-north-1.amazonaws.com/prod"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Returns API health status. No authentication required.",
+        "operationId": "healthCheck",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "$env(BACKEND_BASE_URL)"
+            }
+          },
+          "policies": {
+            "inbound": ["add-aws-api-key-inbound"]
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API is healthy"
+          }
+        }
+      }
+    },
+    "/api/mrz/process": {
+      "post": {
+        "summary": "Process passport image (multipart upload)",
+        "description": "Upload a passport image (JPG/PNG/PDF) and receive parsed MRZ data.",
+        "operationId": "processMrzImage",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "$env(BACKEND_BASE_URL)"
+            }
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit-inbound",
+              "add-aws-api-key-inbound",
+              "add-backend-secret-inbound"
+            ]
+          }
+        },
+        "security": [{ "ApiKeyAuth": [] }],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Passport image file (JPG, PNG, or PDF, max 10MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MRZ data successfully extracted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "SUCCESS" },
+                    "surname": { "type": "string", "example": "SMITH" },
+                    "given_names": { "type": "string", "example": "JOHN" },
+                    "document_number": { "type": "string", "example": "AB1234567" },
+                    "nationality_code": { "type": "string", "example": "GBR" },
+                    "birth_date": { "type": "string", "example": "900101" },
+                    "sex": { "type": "string", "example": "M" },
+                    "expiry_date": { "type": "string", "example": "300101" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "API key missing or invalid" },
+          "429": { "description": "Rate limit exceeded" }
+        }
+      }
+    },
+    "/api/mrz/process-base64": {
+      "post": {
+        "summary": "Process passport image (base64 JSON)",
+        "description": "Send a base64-encoded passport image and receive parsed MRZ data.",
+        "operationId": "processMrzBase64",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "$env(BACKEND_BASE_URL)"
+            }
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit-inbound",
+              "add-aws-api-key-inbound",
+              "add-backend-secret-inbound"
+            ]
+          }
+        },
+        "security": [{ "ApiKeyAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "description": "Base64-encoded image (with or without data URI prefix)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "MRZ data successfully extracted" },
+          "401": { "description": "API key missing or invalid" },
+          "429": { "description": "Rate limit exceeded" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Bearer token: `Authorization: Bearer <your-api-key>`"
+      }
+    }
+  }
+}
