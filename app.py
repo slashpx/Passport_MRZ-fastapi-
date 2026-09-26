@@ -136,7 +136,7 @@ def health_check():
     """A simple health check endpoint."""
     return {"status": "OK", "message": "MRZ Backend (FastAPI) is running"}
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def read_root():
     """This is what users see when they visit the main URL."""
     return {
@@ -144,7 +144,7 @@ async def read_root():
         "docs_url": "Visit /docs to test the API"
     }
 
-@app.get("/status")
+@app.get("/status", include_in_schema=False)
 async def check_status():
     """Reports real runtime state rather than a hardcoded value.
 
