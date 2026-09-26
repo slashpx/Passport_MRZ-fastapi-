@@ -130,5 +130,18 @@ def health_check():
     """A simple health check endpoint."""
     return {"status": "OK", "message": "MRZ Backend (FastAPI) is running"}
 
+@app.get("/")
+async def read_root():
+    """This is what users see when they visit the main URL."""
+    return {
+        "message": "Welcome to the Passport MRZ API!",
+        "docs_url": "Visit /docs to test the API"
+    }
+
+@app.get("/status")
+async def check_status():
+    """A separate endpoint you can visit at /status"""
+    return {"status": "Online", "model_loaded": True}
+
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
