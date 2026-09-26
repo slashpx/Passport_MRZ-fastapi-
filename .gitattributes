@@ -1,1 +1,5 @@
-*.onnx filter=lfs diff=lfs merge=lfs -text
+# Model/OCR assets are committed as plain blobs (5MB + 11MB, well under limits).
+# Git LFS is deliberately NOT used: build hosts that don't fetch LFS objects
+# would check out pointer files and break the Docker build at COPY time.
+*.onnx -text
+*.traineddata -text

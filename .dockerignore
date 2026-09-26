@@ -1,11 +1,31 @@
-node_modules/
-npm-debug.log
+# VCS
+.git
+.github/
+fastmrz/.git
+
+# Python
 venv/
+.venv/
 __pycache__/
 *.pyc
+
+# Node
+node_modules/
+npm-debug.log
+
+# Secrets
 .env
+
+# Runtime / test data not needed in the image
 uploads/
 test_images/
-.git/
+
+# Upstream fastmrz documentation (32MB) - not needed to run the app
+fastmrz/docs/
+
+# Stray duplicate checkout of this repo
+Passport_MRZ-fastapi-/
+
+# Editor
 .vscode/
-RUN apt-get update && apt-get install -y poppler-utils
+.idea/

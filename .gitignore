@@ -38,3 +38,9 @@ Thumbs.db
 
 # Deployment summary template
 deployment_summary_template.txt
+
+# Vendored fastmrz: upstream docs (32MB) are not needed to build or run the app
+fastmrz/docs/
+
+# Stray duplicate checkout of this repo
+Passport_MRZ-fastapi-/
