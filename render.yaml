@@ -1,0 +1,33 @@
+# Render Blueprint.
+#
+# The service MUST run as a Docker service. This app needs the tesseract-ocr
+# system package plus a custom mrz.traineddata language file, and Render's
+# native Python runtime cannot install apt packages - which is why /status
+# currently reports "tesseract is not installed or it's not in your PATH".
+#
+# The Dockerfile installs tesseract and drops mrz.traineddata into the
+# version-correct tessdata directory, producing:
+#   {"tesseract_available": true, "mrz_language_available": true, "status": "Online"}
+
+services:
+  - type: web
+    name: mrzlensapi
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    autoDeploy: true
+
+    # /healthMrz is a plain liveness probe and always returns 200 when the
+    # process is up. Swap to /status for a stricter check that also verifies
+    # tesseract and the mrz language pack - but note that a degraded build
+    # then returns 503 and Render will refuse to promote the deploy.
+    healthCheckPath: /healthMrz
+
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # Set this in the dashboard (marked sync:false so it is never committed).
+      # Without it the app logs "AI fallback will be disabled" and still runs.
+      - key: OPENAI_API_KEY
+        sync: false
