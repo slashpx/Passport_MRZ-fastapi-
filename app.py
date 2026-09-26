@@ -5,6 +5,7 @@ import uvicorn
 import base64
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import logging
 import pytesseract
@@ -19,11 +20,16 @@ from improved_mrz_extractor import MRZExtractor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- ⭐️ FINAL FIX: ISOLATE TESSERACT TEMP FILES ⭐️ ---
-# Create a unique directory for this specific container instance to prevent file collisions.
+# --- ISOLATE TESSERACT TEMP FILES ---
+# Create a unique directory for this instance to prevent temp-file collisions.
+# NOTE: this must NOT be assigned to TESSDATA_PREFIX. That variable tells Tesseract
+# where to find its .traineddata language files, not where to put temp files.
+# Pointing it at an empty directory makes `lang='mrz'` fail with "Failed loading
+# language 'mrz'", which run_ocr() swallows, yielding an empty raw_text.
+# TMPDIR is the variable that actually controls scratch files for the subprocess.
 TESSERACT_TEMP_DIR = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 os.makedirs(TESSERACT_TEMP_DIR, exist_ok=True)
-os.environ['TESSDATA_PREFIX'] = TESSERACT_TEMP_DIR # Pytesseract uses this for temp files
+os.environ['TMPDIR'] = TESSERACT_TEMP_DIR
 
 logger.info(f"Using isolated Tesseract temp directory: {TESSERACT_TEMP_DIR}")
 
@@ -140,8 +146,52 @@ async def read_root():
 
 @app.get("/status")
 async def check_status():
-    """A separate endpoint you can visit at /status"""
-    return {"status": "Online", "model_loaded": True}
+    """Reports real runtime state rather than a hardcoded value.
+
+    Checks the two things that actually have to work for /api/mrz/process to
+    succeed: the ONNX segmentation model, and Tesseract with the custom 'mrz'
+    language pack. Returns 200 when healthy, 503 when degraded, so uptime
+    checks and Render health checks see a genuine failure.
+    """
+    checks = {}
+
+    # 1. ONNX segmentation model
+    try:
+        checks["model_loaded"] = bool(extractor) and os.path.isfile(model_path)
+        checks["model_path"] = model_path
+    except Exception as e:
+        checks["model_loaded"] = False
+        checks["model_error"] = str(e)
+
+    # 2. Tesseract binary
+    try:
+        checks["tesseract_version"] = str(pytesseract.get_tesseract_version())
+        checks["tesseract_available"] = True
+    except Exception as e:
+        checks["tesseract_available"] = False
+        checks["tesseract_error"] = str(e)
+
+    # 3. The 'mrz' language pack - the piece that silently breaks OCR when absent
+    try:
+        langs = pytesseract.get_languages(config="")
+        checks["languages"] = sorted(langs)
+        checks["mrz_language_available"] = "mrz" in langs
+    except Exception as e:
+        checks["mrz_language_available"] = False
+        checks["languages_error"] = str(e)
+
+    checks["tessdata_prefix"] = os.environ.get("TESSDATA_PREFIX", "(unset - using Tesseract default)")
+
+    healthy = (
+        checks.get("model_loaded")
+        and checks.get("tesseract_available")
+        and checks.get("mrz_language_available")
+    )
+    checks["status"] = "Online" if healthy else "Degraded"
+
+    if not healthy:
+        return JSONResponse(status_code=503, content=checks)
+    return checks
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
