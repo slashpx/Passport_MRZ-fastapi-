@@ -1,7 +1,7 @@
 
 # Improved MRZ Extractor Module
 
-This module replaces the logic in `fastmrz` with a robust, multi-pass extraction engine designed to increase accuracy from ~50% to 85%+.
+This module replaces the logic in `fastmrz` with a multi-pass extraction engine. Measured accuracy on the 37-document benchmark in `accuracy_report.md`: 89.2% of files correct on every field, 97.6% mean field-level accuracy.
 
 ## Features
 

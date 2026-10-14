@@ -1,9 +1,21 @@
+"""Generates mrz_performance_summary.png.
+
+WARNING - this chart is ILLUSTRATIVE, not a benchmark.
+
+The `new_system_conf` values are real confidence scores from run logs, but
+`old_system_conf` is a set of rough estimates, not measurements - there was no
+instrumented baseline run. The summary box's "~42% (Old)" figure is therefore
+not a measured result and must not be presented as one.
+
+For measured accuracy, use `accuracy_report.md` (37 documents, strict field
+comparison) or re-run `test_accuracy.py`.
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 def generate_report_card(save_path='mrz_performance_summary.png'):
-    # Data from your actual recent tests
+    # Confidence scores for the current system come from run logs.
     files = [
         "Priyanka passport (1).pdf", 
         "BASIL PASSPORT.pdf", 
