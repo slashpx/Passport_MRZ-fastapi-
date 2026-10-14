@@ -44,3 +44,6 @@ fastmrz/docs/
 
 # Stray duplicate checkout of this repo
 Passport_MRZ-fastapi-/
+
+# Debug artifact: contains a crop of the submitted document (PII). Never commit.
+debug_roi_crop.jpg

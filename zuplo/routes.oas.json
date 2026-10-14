@@ -4,7 +4,7 @@
     "title": "elMRZ Passport OCR API",
     "version": "1.0.0",
     "description": "Passport MRZ scanning and OCR API — powered by elMRZ",
-    "x-internal-url": "https://myqd2iza11.execute-api.eu-north-1.amazonaws.com/prod"
+    "x-internal-url": "https://<your-api-id>.execute-api.<region>.amazonaws.com/prod"
   },
   "paths": {
     "/health": {

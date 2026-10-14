@@ -14,8 +14,8 @@ Go to **Settings → Environment Variables** (or the lock icon in the left sideb
 
 | Variable | Value | Secret? |
 |---|---|---|
-| `BACKEND_BASE_URL` | `https://myqd2iza11.execute-api.eu-north-1.amazonaws.com/prod` | No |
-| `AWS_API_KEY` | `Te4pSwwsTW4jVGeqYOJz67N1OgIqcw9M4GBi3jD3` | ✅ Yes |
+| `BACKEND_BASE_URL` | `https://<your-api-id>.execute-api.<region>.amazonaws.com/prod` | No |
+| `AWS_API_KEY` | `<your-aws-api-gateway-key>` | ✅ Yes |
 | `BACKEND_SECRET` | *(generate — see below)* | ✅ Yes |
 
 Generate a backend secret:

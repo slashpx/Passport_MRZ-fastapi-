@@ -3,7 +3,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 // --- Test Configuration ---
-const ZUPLO_URL = 'https://mrz-api-main-c1a0bd1.d2.zuplo.dev';
+const ZUPLO_URL = 'https://<your-project>.zuplo.dev';
 const API_KEY = 'YOUR_ZUPLO_CONSUMER_API_KEY'; // Your consumer API key
 
 // Load the test image file.
