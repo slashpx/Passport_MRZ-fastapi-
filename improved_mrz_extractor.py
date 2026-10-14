@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import re
+import uuid
 from datetime import datetime
 from pdf2image import convert_from_path
 from PIL import Image
@@ -488,6 +489,27 @@ class MRZExtractor:
         # For simplicity return the failed 0 degree one
         return result
 
+    def _save_debug_roi(self, roi):
+        """Optionally dump the ROI crop for diagnostics.
+
+        Disabled unless DEBUG_SAVE_ROI is set, because the crop contains document
+        PII and normal processing should leave nothing on disk. When enabled, each
+        dump gets a UUID filename in a dedicated directory so concurrent requests
+        cannot collide. Returns the path written, or None.
+        """
+        if not config.DEBUG_SAVE_ROI:
+            return None
+        try:
+            os.makedirs(config.DEBUG_ROI_DIR, exist_ok=True)
+            path = os.path.join(config.DEBUG_ROI_DIR, f"roi_{uuid.uuid4().hex}.jpg")
+            cv2.imwrite(path, roi)
+            print(f"  [DEBUG] ROI written to {path}", file=sys.stderr)
+            return path
+        except Exception as e:
+            # Diagnostics must never break extraction.
+            print(f"  [DEBUG] ROI dump failed: {e}", file=sys.stderr)
+            return None
+
     def _process_single_image(self, image):
         """Internal processing of a single image array"""
         
@@ -496,8 +518,8 @@ class MRZExtractor:
         roi, roi_method = self.roi_extractor.extract_roi(image)
         if roi is None:
             return {'success': False, 'status': 'ERROR', 'error': 'ROI Extraction Failed'}
-        cv2.imwrite("debug_roi_crop.jpg", roi)
-            
+        self._save_debug_roi(roi)
+
         # 3. Preprocessing Variants & Voting
         print("  Preprocessing variants...", file=sys.stderr)
         variants = self.preprocessor.get_preprocessing_variants(roi)
@@ -530,13 +552,15 @@ class MRZExtractor:
         # 7. AI Fallback (New Strategy for "Almost 0" Error)
         if config.AI_FALLBACK_ENABLED and best_score < config.AI_CONFIDENCE_THRESHOLD:
             print(f"  Confidence {best_score} < {config.AI_CONFIDENCE_THRESHOLD}. Triggering AI Fallback...", file=sys.stderr)
-            
-            # Save the ROI for AI to look at (if available)
-            roi_path = "debug_roi_crop.jpg" # Already saved at line 493
-            
+
+            # The ROI is passed as an in-memory array rather than via a file path.
+            # A shared on-disk filename would let concurrent requests overwrite each
+            # other's crop between the write and the read below, sending one caller's
+            # document to the vision API inside another caller's request.
+
             # Option A: Correct the best Tesseract result
             raw_text = best_parsed.get('raw_text', "")
-            corrected_text = self.ai_extractor.correct_mrz(raw_text, image_path=roi_path)
+            corrected_text = self.ai_extractor.correct_mrz(raw_text, image=roi)
             
             if corrected_text:
                 print("  AI Correction successful.", file=sys.stderr)
@@ -551,7 +575,7 @@ class MRZExtractor:
             # Option B: If still low, try full AI extraction
             if best_score < config.AI_CONFIDENCE_THRESHOLD:
                  print("  Confidence still low. Trying full AI extraction...", file=sys.stderr)
-                 full_ai = self.ai_extractor.extract_full_data(roi_path)
+                 full_ai = self.ai_extractor.extract_full_data(roi)
                  if full_ai and 'mrz_lines' in full_ai:
                      ai_text = "\n".join(full_ai['mrz_lines'])
                      ai_parsed = self.parse_mrz(ai_text)

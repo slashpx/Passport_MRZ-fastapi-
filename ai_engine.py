@@ -2,6 +2,8 @@ import os
 import base64
 import json
 import logging
+import cv2
+import numpy as np
 import config
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -24,13 +26,31 @@ class AIExtractor:
         else:
             self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
 
-    def _encode_image(self, image_path):
-        with open(image_path, "rb") as image_file:
+    def _encode_image(self, image):
+        """Base64-encode an image for the vision API.
+
+        Accepts an in-memory OpenCV/numpy array, raw bytes, or a file path.
+        The array form is preferred: the ROI crop contains PII, so keeping it in
+        memory avoids writing it to disk and avoids any shared-filename race
+        between concurrent requests.
+        """
+        if isinstance(image, np.ndarray):
+            ok, buf = cv2.imencode(".jpg", image)
+            if not ok:
+                raise ValueError("Failed to JPEG-encode image array")
+            return base64.b64encode(buf.tobytes()).decode('utf-8')
+
+        if isinstance(image, (bytes, bytearray)):
+            return base64.b64encode(bytes(image)).decode('utf-8')
+
+        with open(image, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
-    def correct_mrz(self, raw_ocr_text, image_path=None):
+    def correct_mrz(self, raw_ocr_text, image=None):
         """
         Takes noisy OCR text and (optionally) an image crop, and returns corrected MRZ lines.
+
+        `image` may be a numpy array, raw bytes, or a path.
         """
         if not self.client:
             return None
@@ -55,8 +75,8 @@ class AIExtractor:
             {"role": "user", "content": prompt}
         ]
 
-        if image_path:
-            base64_image = self._encode_image(image_path)
+        if image is not None:
+            base64_image = self._encode_image(image)
             messages[1]["content"] = [
                 {"type": "text", "text": prompt},
                 {
@@ -82,14 +102,16 @@ class AIExtractor:
             logger.error(f"AI Correction failed: {e}")
             return None
 
-    def extract_full_data(self, image_path):
+    def extract_full_data(self, image):
         """
-        Extracts both MRZ and visual fields to ensure 100% accuracy via cross-verification.
+        Extracts both MRZ and visual fields to cross-verify the two against each other.
+
+        `image` may be a numpy array, raw bytes, or a path.
         """
         if not self.client:
             return None
 
-        base64_image = self._encode_image(image_path)
+        base64_image = self._encode_image(image)
         
         prompt = """
         Extract all information from this passport. 

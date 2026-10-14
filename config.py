@@ -1,5 +1,6 @@
 # MRZ Extraction Configuration
 import os
+import tempfile
 
 # Detect operating system
 IS_WINDOWS = os.name == 'nt'
@@ -67,6 +68,13 @@ OCR_CONFUSIONS = {
 SCORE_WEIGHT_CHECKSUM = 75
 SCORE_WEIGHT_COMPLETENESS = 20
 SCORE_WEIGHT_LOGIC = 5
+
+# Debug ROI Dump
+# Off by default: the ROI crop contains document PII, so it must never be written
+# to disk as a side effect of normal processing. When enabled, each dump gets a
+# unique filename so concurrent requests cannot overwrite each other's crop.
+DEBUG_SAVE_ROI = os.getenv("DEBUG_SAVE_ROI", "false").lower() == "true"
+DEBUG_ROI_DIR = os.getenv("DEBUG_ROI_DIR", os.path.join(tempfile.gettempdir(), "mrz_debug_roi"))
 
 # AI Fallback Configuration
 AI_FALLBACK_ENABLED = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
